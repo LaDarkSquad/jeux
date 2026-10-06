@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONS CITY RP - V4 FINALE PARFAITE</title>
+<style>
+body{margin:0;background:#0f1115;color:#fff;font-family:Arial;overflow:hidden}
+#hud{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.92);padding:12px;border-radius:14px;min-width:300px;z-index:20;font-size:12px}
+#map{width:100vw;height:100vh;position:relative;background:radial-gradient(#1e293b,#0f1115)}
+.building{position:absolute;background:#1e293b;padding:7px 11px;border-radius:10px;font-size:11px;border:1px solid #334155;cursor:pointer}
+#player{width:16px;height:16px;background:#22c55e;border-radius:50%;position:absolute;box-shadow:0 0 20px #22c55e;z-index:5;transition:all.1s}
+#radar,#clientPin{width:18px;height:18px;border-radius:50%;position:absolute;display:none;z-index:6}
+#radar{background:#ef4444;box-shadow:0 0 15px red} #clientPin{background:#facc15;box-shadow:0 0 15px yellow;animation:bounce.8s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+#cell{position:absolute;top:25%;left:60%;width:130px;height:90px;background:repeating-linear-gradient(90deg,#000,#000 8px,#333 8px,#333 10px);border:3px solid #555;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px}
+button{background:#22c55e;border:none;padding:6px 10px;border-radius:8px;font-weight:bold;cursor:pointer;margin:2px;color:#000;font-size:11px}
+.btn-police{background:#3b82f6;color:#fff}.btn-mecano{background:#f59e0b;color:#000}.btn-house{background:#a855f7;color:#fff}.btn-taxi{background:#facc15;color:#000}.btn-danger{background:#ef4444;color:#fff}
+.panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:350px;background:#0f172a;border:2px solid #334155;border-radius:16px;padding:14px;display:none;z-index:30;max-height:85vh;overflow:auto}
+#phoneUI{position:absolute;right:10px;bottom:10px;width:260px;height:460px;background:#0a0a0a;border:3px solid #222;border-radius:28px;padding:12px;display:none;z-index:30}
+input,select{width:92%;padding:6px;border-radius:6px;border:none;margin:4px 0;background:#1e293b;color:#fff}
+#gpsLine{position:absolute;height:3px;background:#22c55e;transform-origin:left;opacity:.6;display:none;z-index:4}
+</style>
+</head>
+<body>
+<div id="hud">
+<div>💰 <span id="cash">100€</span> | 🏦 <span id="bank">0€</span> | ⭐ <span id="rep">0</span> | 🎖️ <span id="grade">Cadet</span></div>
+<div>❤️ <span id="hp">100</span> 🍔 <span id="hunger">85</span> 💧 <span id="thirst">72</span> | ⛽ <span id="fuel">100%</span> | 📅 J<span id="day">1</span></div>
+<div>👤 <span id="job">Chômeur</span> | 🚗 <span id="veh">Aucun</span> | 🏠 <span id="house">SDF</span> | 💸 Factures: <span id="bills">0€</span></div>
+<div style="margin-top:6px">
+<button onclick="become('police')">👮 Police</button>
+<button class="btn-mecano" onclick="become('mecano')">🔧 Mécano</button>
+<button class="btn-taxi" onclick="become('taxi')">🚕 Taxi</button>
+<button onclick="work()">💼 Travailler</button>
+<button onclick="buyCar()">🚗 208</button><br>
+<button class="btn-police" onclick="openP('tablet')">💻 Police</button>
+<button class="btn-mecano" onclick="openP('garage')">🛠️ Garage</button>
+<button class="btn-house" onclick="openP('houseMenu')">🏠 Maison</button>
+<button class="btn-taxi" onclick="openP('phoneUI')">📱 Téléphone GPS</button>
+</div>
+<div id="notif" style="color:#facc15;margin-top:6px;min-height:18px;font-size:12px"></div>
+</div>
+
+<div id="map">
+<div class="building" style="top:20%;left:30%" onclick="bankAction()">🏦 Banque</div>
+<div class="building" style="top:25%;left:58%" onclick="openP('tablet')">🚓 Commissariat</div>
+<div id="cell">CELLULE<br><span id="cellContent">Vide</span></div>
+<div class="building" style="top:60%;left:20%">🏥 Hôpital</div>
+<div class="building" style="top:70%;left:68%;border-color:#f59e0b" onclick="openP('garage')">🛠️ Garage</div>
+<div class="building" style="top:45%;left:42%;border-color:#a855f7" onclick="openP('houseMenu')">🏠 Agence Immo</div>
+<div class="building" style="top:50%;left:25%">🍔 Resto 3€ | Supermarché</div>
+<div class="building" style="top:15%;left:15%;border-color:#22c55e" onclick="refuel()">⛽ Essence 1.8€/L - Cliquer pour plein</div>
+<div id="radar"></div><div id="clientPin">📍</div><div id="gpsLine"></div><div id="player"></div>
+</div>
+
+<div id="tablet" class="panel"><h3 style="margin:0;color:#60a5fa">💻 TABLETTE POLICE PARFAITE</h3>
+<input id="speed" type="number" placeholder="Vitesse flashée 88"><button class="btn-police" onclick="doFlash()">Flasher</button>
+<input id="fineAmount" type="number" value="150"><input id="fineMotive" value="Excès"><button class="btn-danger" onclick="doFine()">Amende</button>
+<input id="arrestReason" placeholder="Rapport 10 car. min"><button class="btn-danger" onclick="doArrest()">Menotter</button>
+<button onclick="tablet.style.display='none'">Fermer</button></div>
+
+<div id="garage" class="panel"><h3 style="margin:0;color:#fbbf24">🔧 GARAGE PARFAIT</h3>
+<div id="carStatus" style="background:#1e293b;padding:8px;border-radius:8px;margin:8px 0;font-size:11px"></div>
+<select id="partSelect"><option value="frein:80">Frein 80€</option><option value="moteur:350">Moteur 350€</option><option value="pneu:120">Pneus 120€</option><option value="carrosserie:200">Carrosserie 200€</option></select>
+<button class="btn-mecano" onclick="buyPart()">Acheter</button> <span id="invParts"></span><br>
+<button class="btn-mecano" onclick="repair()">Monter +120€</button> Stars: <span id="garageStars"></span> Clients: <span id="clients">0</span>
+<br><button onclick="garage.style.display='none'">Fermer</button></div>
+
+<div id="houseMenu" class="panel"><h3 style="margin:0;color:#c084fc">🏠 MAISONS</h3>
+<button class="btn-house" onclick="buyHouse('Appart Centre',8000)">Appart 8000€</button>
+<button class="btn-house" onclick="buyHouse('Maison Banlieue',25000)">Maison 25000€</button>
+<div id="ownedHouse" style="margin-top:8px"></div>
+<button onclick="houseMenu.style.display='none'">Fermer</button></div>
+
+<div id="phoneUI">
+<h3 style="margin:0">📱 iPhone RP - PARFAIT</h3>
+<div style="font-size:11px;margin:6px 0">📞 Appels | 💬 SMS | 🗺️ GPS | 🏦 Banque | 🚕 Taxi | 🚨 112</div>
+<button class="btn-taxi" onclick="requestTaxi()">🚕 Appeler un Taxi (client)</button>
+<button class="btn-police" onclick="callPolice()">🚨 Appel Police (SOS)</button>
+<button style="background:#1e293b;color:#fff" onclick="gpsTo('banque')">🗺️ GPS Banque</button>
+<button style="background:#1e293b;color:#fff" onclick="gpsTo('garage')">🗺️ GPS Garage</button>
+<button style="background:#1e293b;color:#fff" onclick="gpsTo('commissariat')">🗺️ GPS Commissariat</button>
+<div style="margin-top:8px">Course Taxi active:<br><span id="taxiMission">Aucune</span></div>
+<div style="margin-top:8px;font-size:11px">Distance client: <span id="dist">0</span>m | Gain: 40€ + pourboire</div>
+<button onclick="phoneUI.style.display='none'" style="margin-top:10px;width:100%">Fermer</button>
+</div>
+
+<script>
+let p = JSON.parse(localStorage.getItem('monsRPv4')||'null') || {
+  cash:100, bank:0, health:100, hunger:85, thirst:72, fuel:100,
+  job:null, rep:0, grade:"Cadet", arrests:0, clients:0, stars:3.0,
+  vehicles:[], house:null, pos:{x:50,y:50}, jailed:0, radarPos:null, parts:[], bills:0, day:1, taxi:null
+};
+
+function save(){ localStorage.setItem('monsRPv4', JSON.stringify(p)); upd(); }
+function notify(m){ notif.innerText=m; setTimeout(()=>notif.innerText="",4500); }
+function openP(id){ document.getElementById(id).style.display="block"; }
+function upd(){
+  cash.innerText=p.cash+"€"; bank.innerText=p.bank+"€"; rep.innerText=p.rep; grade.innerText=p.grade;
+  hp.innerText=Math.floor(p.health); hunger.innerText=Math.floor(p.hunger); thirst.innerText=Math.floor(p.thirst); fuel.innerText=Math.floor(p.fuel)+"%";
+  job.innerText=p.job||"Chômeur"; veh.innerText=p.vehicles[0]?.name||"Aucun"; house.innerText=p.house||"SDF"; bills.innerText=p.bills+"€"; day.innerText=p.day;
+  player.style.left=p.pos.x+"%"; player.style.top=p.pos.y+"%";
+  if(p.radarPos){ radar.style.display="block"; radar.style.left=p.radarPos.x+"%"; radar.style.top=p.radarPos.y+"%"; }
+  carStatus.innerHTML=`Voiture: ${p.vehicles[0]?.name||"Aucune"} Dégâts: ${p.vehicles[0]?.damage||0}% Fuel ${Math.floor(p.fuel)}%`;
+  invParts.innerText=p.parts.join(", ")||"Aucune"; clients.innerText=p.clients; garageStars.innerText="⭐".repeat(Math.round(p.stars))+" ("+p.stars.toFixed(1)+")";
+  ownedHouse.innerHTML=p.house?`Tu as: <b>${p.house}</b>`:"Pas de maison";
+  if(p.taxi){ clientPin.style.display="block"; clientPin.style.left=p.taxi.x+"%"; clientPin.style.top=p.taxi.y+"%"; taxiMission.innerText=p.taxi.desc; let d=Math.hypot(p.pos.x-p.taxi.x, p.pos.y-p.taxi.y); dist.innerText=Math.floor(d*10); gpsLine.style.display="block"; let dx=p.taxi.x-p.pos.x, dy=p.taxi.y-p.pos.y, ang=Math.atan2(dy,dx)*180/Math.PI, len=Math.hypot(dx,dy)*5; gpsLine.style.left=p.pos.x+"%"; gpsLine.style.top=p.pos.y+"%"; gpsLine.style.width=len+"px"; gpsLine.style.transform=`rotate(${ang}deg)`; } else { clientPin.style.display="none"; gpsLine.style.display="none"; taxiMission.innerText="Aucune"; }
+}
+
+window.become=j=>{ p.job=j; notify("Métier "+j); if(j==="taxi") notify("🚕 Ouvre ton téléphone, les clients vont t'appeler!"); save(); };
+window.work=()=>{ if(p.jailed>0) return notify("En prison!"); if(p.job==="police"){p.bank+=15;p.rep++;} else if(p.job==="mecano"){openP('garage');return;} else if(p.job==="taxi"){requestTaxi();return;} else {p.bank+=20;} save(); notify("Travail +€"); };
+window.buyCar=()=>{ if(p.cash+p.bank>=2500){ p.cash=Math.max(0,p.cash-2500); p.vehicles=[{name:"Peugeot 208", plate:"MONS-"+Math.floor(Math.random()*900)+100, damage:10}]; save(); notify("208 achetée"); } };
+window.bankAction=()=>{ let d=parseInt(prompt("Déposer?")||0); if(d&&p.cash>=d){p.cash-=d;p.bank+=d;save();} };
+window.refuel=()=>{ let need=100-p.fuel; let cost=Math.floor(need*1.8); if(p.cash>=cost){p.cash-=cost;p.fuel=100;notify("Plein fait -"+cost+"€");save();} else notify("Pas assez pour plein "+cost+"€"); };
+
+// POLICE
+window.doFlash=()=>{ let v=parseInt(speed.value); notify(v>70?"FLASH "+v+" km/h! Amende":"OK"); };
+window.doFine=()=>{ if(fineAmount.value>500) return notify("Max 500€"); p.bank+=10; p.rep+=2; save(); notify("Amende "+fineAmount.value+"€"); };
+window.doArrest=()=>{ if(arrestReason.value.length<10) return notify("Rapport trop court"); p.arrests++; p.rep+=10; p.bank+=50; if(p.arrests>=5) p.grade="Agent"; save(); notify("Menotté! Grade "+p.grade); tablet.style.display="none"; };
+
+// MECANO
+window.buyPart=()=>{ let [n,pr]=partSelect.value.split(":"); pr=parseInt(pr); if(p.bank>=pr){p.bank-=pr;p.parts.push(n);save();notify("Pièce "+n+" achetée");} };
+window.repair=()=>{ if(!p.parts.length) return notify("Achète pièce"); p.parts.shift(); p.clients++; p.stars=Math.min(5,p.stars+0.1); p.bank+=120; if(p.vehicles[0]) p.vehicles[0].damage=0; save(); notify("Réparé +120€ ⭐"); };
+
+// MAISON
+window.buyHouse=(n,pr)=>{ if(p.bank>=pr){p.bank-=pr;p.house=n;save();notify(n+" achetée!");} else notify(pr+"€ nécessaires"); };
+
+// TELEPHONE + TAXI PARFAIT
+window.requestTaxi=()=>{
+  if(p.job!=="taxi" &&!p.taxi){ // client appelle taxi
+    p.taxi={x:20+Math.random()*60, y:20+Math.random()*60, desc:"Client à Rue de Nimy - Va le chercher!"};
+    notify("📞 TAXI! Client à Rue de Nimy - GPS activé - Va le chercher!");
+    save();
+  } else if(p.job==="taxi" && p.taxi){
+    let d=Math.hypot(p.pos.x-p.taxi.x, p.pos.y-p.taxi.y);
+    if(d<5){ p.bank+=40+Math.floor(Math.random()*20); p.rep+=3; p.taxi=null; notify("🚕 Course terminée +40€ + pourboire! Nouveau client dans 10s"); save(); setTimeout(()=>{ if(p.job==="taxi") requestTaxi(); },10000); }
+    else notify("Encore "+Math.floor(d*10)+"m - Suis le GPS jaune!");
+  } else if(p.job==="taxi" &&!p.taxi){
+    requestTaxi();
+  }
+};
+window.callPolice=()=>notify("🚨 Appel 112 - Police en route! Position envoyée");
+window.gpsTo=t=>{
+  let dest={banque:{x:30,y:20}, garage:{x:70,y:70}, commissariat:{x:60,y:25}}[t];
+  p.taxi={x:dest.x, y:dest.y, desc:"GPS vers "+t}; save(); notify("🗺️ GPS activé vers "+t);
+};
+
+document.addEventListener("keydown", e=>{
+  if(p.jailed>0) return;
+  if(e.key==="ArrowUp") p.pos.y=Math.max(2,p.pos.y-1);
+  if(e.key==="ArrowDown") p.pos.y=Math.min(98,p.pos.y+1);
+  if(e.key==="ArrowLeft") p.pos.x=Math.max(0,p.pos.x-1);
+  if(e.key==="ArrowRight") p.pos.x=Math.min(98,p.pos.x+1);
+  p.fuel=Math.max(0,p.fuel-0.07); if(p.fuel===0) notify("⛽ Panne d'essence! Va à la station");
+  save();
+});
+
+setInterval(()=>{
+  p.hunger=Math.max(0,p.hunger-0.03); p.thirst=Math.max(0,p.thirst-0.05);
+  if(p.hunger===0) p.health--; save();
+},2000);
+
+// Factures compétitives - chaque 2 min = 1 jour RP
+setInterval(()=>{
+  p.day++; p.bills+= (p.house?200:50);
+  if(p.bills>500) notify("💸 FACTURES IMPAYÉES "+p.bills+"€! Va à la banque sinon huissier!");
+  save();
+},120000);
+
+upd();
+</script>
+</body>
+</html>
